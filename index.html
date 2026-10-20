@@ -15,17 +15,17 @@
     margin: 0;
     min-height: 100vh;
     padding: 20px 12px;
-    background: linear-gradient(135deg, #080a6b, #6800a8, #e40078);
+    background: #d60000;
     color: white;
     font-family: Arial, sans-serif;
     text-align: center;
   }
 
   h1 {
-    color: #fff900;
+    color: white;
     font-size: clamp(25px, 6vw, 40px);
     margin: 10px 0 20px;
-    text-shadow: 0 0 8px #ff8800, 0 0 22px #ff00cc;
+    text-shadow: 2px 2px 0 #800000;
   }
 
   #status {
@@ -46,10 +46,10 @@
     grid-template-columns: repeat(5, minmax(0, 1fr));
     grid-template-rows: repeat(5, minmax(0, 1fr));
     gap: 5px;
-    background: linear-gradient(135deg, #00eaff, #ff00d4, #fff000);
-    border: 4px solid #fff900;
-    border-radius: 14px;
-    box-shadow: 0 0 18px #00eaff, 0 0 40px #ff00d4;
+    background: #990000;
+    border: 4px solid white;
+    border-radius: 8px;
+    box-shadow: 0 0 18px #700000;
   }
 
   .tile {
@@ -58,69 +58,46 @@
     align-items: center;
     min-width: 0;
     min-height: 0;
-    border: 2px solid white;
-    border-radius: 6px;
-    background: linear-gradient(145deg, #ff168c, #7b00ff);
-    color: white;
+    border: 2px solid #dddddd;
+    border-radius: 3px;
+    background: #ffffff;
+    color: #d60000;
     font-size: clamp(15px, 3.8vw, 27px);
     font-weight: 900;
-    text-shadow: 0 2px 4px #30004d;
-    box-shadow: inset 0 0 10px #ffffff33;
+    position: relative;
   }
 
-  .tile:nth-child(4n + 1) {
-    background: linear-gradient(145deg, #ff3d00, #ffae00);
-  }
-
-  .tile:nth-child(4n + 2) {
-    background: linear-gradient(145deg, #00cfff, #004dff);
-  }
-
-  .tile:nth-child(4n + 3) {
-    background: linear-gradient(145deg, #ff00c8, #9d00ff);
-  }
-
-  .tile:nth-child(4n) {
-    background: linear-gradient(145deg, #00e676, #009688);
-  }
-
+  /* Yellow selector outlines the selected tile */
   .tile.active {
-    background: #fff900 !important;
-    color: #ff007f;
-    border: 4px solid white;
-    text-shadow: none;
-    box-shadow: 0 0 10px white, 0 0 25px #fff900;
-    transform: scale(1.04);
+    outline: 5px solid #ffeb00;
+    outline-offset: -5px;
     z-index: 2;
   }
 
-  /* Empty 3x3 center */
+  /* Empty 3x3 center and winner display */
   #center {
     grid-column: 2 / 5;
     grid-row: 2 / 5;
     display: flex;
     justify-content: center;
     align-items: center;
-    background: linear-gradient(135deg, #1515bd, #6a00a8);
-    border: 3px solid #00f7ff;
-    border-radius: 10px;
-    color: #fff900;
+    background: #990000;
+    border: 2px solid white;
+    border-radius: 4px;
+    color: white;
     font-size: clamp(42px, 12vw, 90px);
     font-weight: 900;
-    text-shadow: 0 0 15px #ff00dd;
-    box-shadow: inset 0 0 25px #00d9ff55;
   }
 
   button {
     padding: 16px 44px;
     border: 3px solid white;
-    border-radius: 12px;
-    background: linear-gradient(90deg, #fff000, #ff9900);
-    color: #650050;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #d60000;
     font-size: 22px;
     font-weight: 900;
     cursor: pointer;
-    box-shadow: 0 0 18px #ffdb00;
     touch-action: manipulation;
   }
 
@@ -136,6 +113,11 @@
 
     .tile {
       border-width: 1px;
+    }
+
+    .tile.active {
+      outline-width: 4px;
+      outline-offset: -4px;
     }
   }
 </style>
@@ -153,7 +135,6 @@
 <button id="toggle">START</button>
 
 <script>
-// All possible tile options
 const OPTIONS = {
   "1": "1",
   "2": "2",
@@ -182,10 +163,8 @@ let running = false;
 let activeIndex = -1;
 let timer = null;
 
-// Copy the options into a mutable array
 let choices = Object.values(OPTIONS);
 
-// Positions for the 16 outside tiles
 const positions = [
   [1,1], [1,2], [1,3], [1,4], [1,5],
   [2,5], [3,5], [4,5], [5,5],
@@ -193,7 +172,6 @@ const positions = [
   [4,1], [3,1], [2,1]
 ];
 
-// Create the tiles
 const squares = choices.map((choice, index) => {
   const tile = document.createElement("div");
   tile.className = "tile";
@@ -207,7 +185,7 @@ const squares = choices.map((choice, index) => {
   return tile;
 });
 
-// Shuffle all numbers among the tiles
+// Shuffle the numbers among the outside tiles
 function shuffleTiles() {
   for (let i = choices.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -219,7 +197,7 @@ function shuffleTiles() {
   });
 }
 
-// Randomly select a tile
+// Move the yellow outline to a random tile
 function pickRandomSquare() {
   let nextIndex;
 
@@ -238,16 +216,13 @@ function pickRandomSquare() {
   squares[activeIndex].classList.add("active");
 }
 
-// One board update
 function gameStep() {
   shuffleTiles();
   pickRandomSquare();
 }
 
-// Start the board
 function startBoard() {
   running = true;
-
   center.textContent = "";
   status.textContent = "BOARD RUNNING!";
   toggle.textContent = "STOP";
@@ -256,7 +231,6 @@ function startBoard() {
   timer = setInterval(gameStep, 150);
 }
 
-// Stop and display the winner
 function stopBoard() {
   running = false;
   clearInterval(timer);
@@ -268,7 +242,6 @@ function stopBoard() {
   toggle.textContent = "START";
 }
 
-// Alternate between start and stop
 toggle.addEventListener("click", () => {
   if (running) {
     stopBoard();
