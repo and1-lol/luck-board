@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -79,7 +79,9 @@
   }
 
   #center.winner {
-    font-size: clamp(55px, 14vw, 100px);
+    font-size: clamp(30px, 8vw, 65px);
+    overflow-wrap: anywhere;
+    padding: 5px;
   }
 
   #center.logo {
@@ -122,6 +124,7 @@
 
     .tile {
       border-width: 1px;
+      font-size: clamp(12px, 3.5vw, 18px);
     }
 
     .tile.active {
@@ -275,6 +278,7 @@ function resetBoard() {
   toggle.textContent = "START";
 }
 
+// Shared control for the screen button and arcade button.
 toggle.addEventListener("click", () => {
   if (running) {
     stopBoard();
@@ -284,6 +288,73 @@ toggle.addEventListener("click", () => {
     startBoard();
   }
 });
+
+// USB gamepad / arcade button support.
+let arcadeWasPressed = false;
+let gamepadIndex = null;
+let gamepadButtonIndex = null;
+
+window.addEventListener("gamepadconnected", event => {
+  gamepadIndex = event.gamepad.index;
+});
+
+window.addEventListener("gamepaddisconnected", event => {
+  if (gamepadIndex === event.gamepad.index) {
+    gamepadIndex = null;
+    gamepadButtonIndex = null;
+    arcadeWasPressed = false;
+  }
+});
+
+function checkArcadeButton() {
+  const gamepads = navigator.getGamepads();
+  let pressed = false;
+
+  // Find the first connected gamepad.
+  if (gamepadIndex === null) {
+    for (const gamepad of gamepads) {
+      if (gamepad) {
+        gamepadIndex = gamepad.index;
+        break;
+      }
+    }
+  }
+
+  if (gamepadIndex !== null) {
+    const gamepad = gamepads[gamepadIndex];
+
+    if (gamepad) {
+      // Identify the physical button on its first press.
+      if (gamepadButtonIndex === null) {
+        const foundButton = gamepad.buttons.findIndex(
+          button => button.pressed
+        );
+
+        if (foundButton !== -1) {
+          gamepadButtonIndex = foundButton;
+        }
+      }
+
+      if (
+        gamepadButtonIndex !== null &&
+        gamepad.buttons[gamepadButtonIndex]
+      ) {
+        pressed =
+          gamepad.buttons[gamepadButtonIndex].pressed;
+      }
+    }
+  }
+
+  // Trigger only once per press.
+  if (pressed && !arcadeWasPressed) {
+    toggle.click();
+  }
+
+  arcadeWasPressed = pressed;
+  requestAnimationFrame(checkArcadeButton);
+}
+
+requestAnimationFrame(checkArcadeButton);
 </script>
 
 </body>
