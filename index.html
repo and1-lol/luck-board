@@ -27,13 +27,21 @@
     margin: 10px 0 20px;
   }
 
+  #status {
+    min-height: 24px;
+    margin: 16px 0;
+    color: #bceaff;
+  }
+
   #board {
     position: relative;
     width: min(100%, 600px);
+    aspect-ratio: 1;
     margin: 0 auto 24px;
-    padding: 8px;
+    padding: 6px;
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: repeat(5, minmax(0, 1fr));
     gap: 5px;
     background: #25254f;
     border: 3px solid #ffe44d;
@@ -42,16 +50,16 @@
   }
 
   .tile {
-    aspect-ratio: 1;
     display: flex;
     justify-content: center;
     align-items: center;
     min-width: 0;
+    min-height: 0;
     border: 2px solid #7474bd;
     border-radius: 5px;
     background: #181844;
     color: white;
-    font-size: clamp(16px, 4vw, 26px);
+    font-size: clamp(13px, 3.5vw, 25px);
     font-weight: bold;
   }
 
@@ -60,31 +68,21 @@
     color: #17102a;
     border-color: white;
     box-shadow: 0 0 15px 4px #fff35b;
+    z-index: 1;
   }
 
-  /* Winner display, centered over the board */
-  #winner {
-    position: absolute;
-    inset: 0;
-    z-index: 5;
-    display: none;
-    justify-content: center;
-    align-items: center;
-    pointer-events: none;
-  }
-
-  #winner span {
+  /* Empty center area */
+  #center {
+    grid-column: 2 / 5;
+    grid-row: 2 / 5;
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 34%;
-    aspect-ratio: 1;
-    background: #ffe44d;
-    color: #10102b;
-    border: 5px solid white;
-    border-radius: 18px;
-    box-shadow: 0 0 35px #ffe44d;
-    font-size: clamp(60px, 15vw, 100px);
+    background: #10102b;
+    border: 2px solid #7474bd;
+    border-radius: 8px;
+    color: #ffe44d;
+    font-size: clamp(40px, 12vw, 80px);
     font-weight: 900;
   }
 
@@ -103,29 +101,22 @@
   button:active {
     transform: scale(0.97);
   }
-
-  #status {
-    min-height: 24px;
-    margin: 16px 0;
-    color: #bceaff;
-  }
 </style>
 </head>
 
 <body>
 
 <h1>PRESS YOUR LUCK!</h1>
-
 <div id="status">Click START to begin</div>
 
 <div id="board">
-  <div id="winner"><span>2</span></div>
+  <div id="center"></div>
 </div>
 
 <button id="toggle">START</button>
 
 <script>
-// All possible board options
+// Every possible choice on the board
 const OPTIONS = {
   "1": "1",
   "2": "2",
@@ -150,60 +141,86 @@ const OPTIONS = {
   "21": "21",
   "22": "22",
   "23": "23",
-  "24": "24",
-  "25": "25"
+  "24": "24"
 };
 
 const board = document.getElementById("board");
+const center = document.getElementById("center");
 const toggle = document.getElementById("toggle");
 const status = document.getElementById("status");
-const winner = document.getElementById("winner");
 
 let running = false;
-let activeIndex = 0;
+let activeIndex = -1;
 let timer = null;
 
-// Create the 25 board squares
-const tiles = Object.values(OPTIONS);
+const choices = Object.values(OPTIONS);
 
-tiles.forEach(value => {
+// Place choices around the outside, leaving the center empty.
+// Each coordinate is [row, column].
+const positions = [
+  [1,1], [1,2], [1,3], [1,4], [1,5],
+  [2,5], [3,5], [4,5],
+  [5,5], [5,4], [5,3], [5,2], [5,1],
+  [4,1], [3,1], [2,1],
+  [2,2], [2,3], [2,4],
+  [3,4], [4,4], [4,3], [4,2], [3,2]
+];
+
+// Create all 24 outer squares
+const squares = choices.map((choice, index) => {
   const tile = document.createElement("div");
   tile.className = "tile";
-  tile.textContent = value;
+  tile.textContent = choice;
+
+  const [row, column] = positions[index];
+  tile.style.gridRow = row;
+  tile.style.gridColumn = column;
+
   board.appendChild(tile);
+  return tile;
 });
 
-const squares = [...board.querySelectorAll(".tile")];
+// Pick a random square, avoiding the same square twice consecutively.
+function pickRandomSquare() {
+  let nextIndex;
 
-function startBoard() {
-  running = true;
-  toggle.textContent = "STOP";
-  status.textContent = "Board running...";
-  winner.style.display = "none";
+  do {
+    nextIndex = Math.floor(Math.random() * squares.length);
+  } while (squares.length > 1 && nextIndex === activeIndex);
 
-  timer = setInterval(() => {
+  if (activeIndex !== -1) {
     squares[activeIndex].classList.remove("active");
-    activeIndex = (activeIndex + 1) % squares.length;
-    squares[activeIndex].classList.add("active");
-  }, 75);
+  }
+
+  activeIndex = nextIndex;
+  squares[activeIndex].classList.add("active");
 }
 
+// Start the random selection
+function startBoard() {
+  running = true;
+  center.textContent = "";
+  status.textContent = "Board running...";
+  toggle.textContent = "STOP";
+
+  pickRandomSquare();
+
+  timer = setInterval(pickRandomSquare, 100);
+}
+
+// Stop and display the winning number
 function stopBoard() {
   running = false;
   clearInterval(timer);
 
   toggle.textContent = "START";
-  status.textContent = "";
 
-  // Show the winner only if the light stops on 2
-  if (tiles[activeIndex] === "2") {
-    winner.style.display = "flex";
-  } else {
-    winner.style.display = "none";
-  }
+  const winner = choices[activeIndex];
+  center.textContent = winner;
+  status.textContent = "Winner: " + winner;
 }
 
-// Alternate between starting and stopping on every click
+// Alternate between start and stop on each click
 toggle.addEventListener("click", () => {
   if (running) {
     stopBoard();
