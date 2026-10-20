@@ -325,15 +325,7 @@ function checkArcadeButton() {
 
     if (gamepad) {
       // Identify the physical button on its first press.
-      if (gamepadButtonIndex === null) {
-        const foundButton = gamepad.buttons.findIndex(
-          button => button.pressed
-        );
-
-        if (foundButton !== -1) {
-          gamepadButtonIndex = foundButton;
-        }
-      }
+      gamepadButtonIndex = 0;
 
       if (
         gamepadButtonIndex !== null &&
