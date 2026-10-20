@@ -16,24 +16,12 @@
     min-height: 100vh;
     padding: 20px 12px;
     background: #d60000;
-    color: white;
     font-family: Arial, sans-serif;
     text-align: center;
-  }
-
-  h1 {
-    color: white;
-    font-size: clamp(25px, 6vw, 40px);
-    margin: 10px 0 20px;
-    text-shadow: 2px 2px 0 #800000;
-  }
-
-  #status {
-    min-height: 24px;
-    margin: 16px 0;
-    color: white;
-    font-size: 18px;
-    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   #board {
@@ -47,7 +35,7 @@
     grid-template-rows: repeat(5, minmax(0, 1fr));
     gap: 5px;
     background: #990000;
-    border: 4px solid white;
+    border: 5px solid #ffeb00;
     border-radius: 8px;
     box-shadow: 0 0 18px #700000;
   }
@@ -67,31 +55,53 @@
     position: relative;
   }
 
-  /* Yellow selector outlines the selected tile */
+  /* Yellow outline around the selected tile */
   .tile.active {
     outline: 5px solid #ffeb00;
     outline-offset: -5px;
     z-index: 2;
   }
 
-  /* Empty 3x3 center and winner display */
+  /* Center area */
   #center {
     grid-column: 2 / 5;
     grid-row: 2 / 5;
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-direction: column;
+    text-align: center;
+    overflow: hidden;
     background: #990000;
     border: 2px solid white;
     border-radius: 4px;
     color: white;
-    font-size: clamp(42px, 12vw, 90px);
     font-weight: 900;
+  }
+
+  #center.winner {
+    font-size: clamp(55px, 14vw, 100px);
+  }
+
+  #center.logo {
+    font-size: clamp(20px, 5vw, 38px);
+    line-height: 1.05;
+    color: #ffeb00;
+    text-shadow:
+      2px 2px 0 #d60000,
+      -2px -2px 0 #d60000,
+      0 0 8px #ffeb00;
+    transform: rotate(-5deg);
+  }
+
+  #center.logo .press {
+    font-size: 0.75em;
+    color: white;
   }
 
   button {
     padding: 16px 44px;
-    border: 3px solid white;
+    border: 3px solid #ffeb00;
     border-radius: 6px;
     background: #ffffff;
     color: #d60000;
@@ -125,16 +135,17 @@
 
 <body>
 
-<h1>PRESS YOUR LUCK!</h1>
-<div id="status">Click START to begin</div>
-
 <div id="board">
-  <div id="center"></div>
+  <div id="center" class="logo">
+    <span class="press">PRESS YOUR</span>
+    <span>LUCK!</span>
+  </div>
 </div>
 
 <button id="toggle">START</button>
 
 <script>
+// All possible tile options
 const OPTIONS = {
   "1": "1",
   "2": "2",
@@ -157,14 +168,15 @@ const OPTIONS = {
 const board = document.getElementById("board");
 const center = document.getElementById("center");
 const toggle = document.getElementById("toggle");
-const status = document.getElementById("status");
 
 let running = false;
+let stopped = false;
 let activeIndex = -1;
 let timer = null;
 
 let choices = Object.values(OPTIONS);
 
+// Positions of the 16 outside tiles
 const positions = [
   [1,1], [1,2], [1,3], [1,4], [1,5],
   [2,5], [3,5], [4,5], [5,5],
@@ -172,6 +184,7 @@ const positions = [
   [4,1], [3,1], [2,1]
 ];
 
+// Create the outside tiles
 const squares = choices.map((choice, index) => {
   const tile = document.createElement("div");
   tile.className = "tile";
@@ -185,7 +198,7 @@ const squares = choices.map((choice, index) => {
   return tile;
 });
 
-// Shuffle the numbers among the outside tiles
+// Shuffle the numbers among the tiles
 function shuffleTiles() {
   for (let i = choices.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -197,7 +210,7 @@ function shuffleTiles() {
   });
 }
 
-// Move the yellow outline to a random tile
+// Randomly move the selector
 function pickRandomSquare() {
   let nextIndex;
 
@@ -221,30 +234,62 @@ function gameStep() {
   pickRandomSquare();
 }
 
+// Click 1: START
 function startBoard() {
   running = true;
+  stopped = false;
+
+  center.className = "";
   center.textContent = "";
-  status.textContent = "BOARD RUNNING!";
   toggle.textContent = "STOP";
 
   gameStep();
   timer = setInterval(gameStep, 150);
 }
 
+// Click 2: STOP
 function stopBoard() {
   running = false;
+  stopped = true;
   clearInterval(timer);
 
   const winner = squares[activeIndex].textContent;
 
+  center.className = "winner";
   center.textContent = winner;
-  status.textContent = "WINNER: " + winner;
+  toggle.textContent = "RESET";
+}
+
+// Click 3: RESET
+function resetBoard() {
+  running = false;
+  stopped = false;
+  clearInterval(timer);
+
+  if (activeIndex !== -1) {
+    squares[activeIndex].classList.remove("active");
+  }
+
+  activeIndex = -1;
+  choices = Object.values(OPTIONS);
+
+  squares.forEach((square, index) => {
+    square.textContent = choices[index];
+  });
+
+  center.className = "logo";
+  center.innerHTML =
+    '<span class="press">PRESS YOUR</span><span>LUCK!</span>';
+
   toggle.textContent = "START";
 }
 
+// Repeat START → STOP → RESET
 toggle.addEventListener("click", () => {
   if (running) {
     stopBoard();
+  } else if (stopped) {
+    resetBoard();
   } else {
     startBoard();
   }
